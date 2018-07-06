@@ -14,6 +14,12 @@ import {NguiAutoComplete} from "./auto-complete";
     <!-- keyword input -->
     <input *ngIf="showInputTag"
            #autoCompleteInput class="keyword"
+           role="combobox"
+           aria-autocomplete="list"
+           aria-haspopup="true"
+           [attr.aria-expanded]="filteredList.length > 0"
+           [attr.aria-activedescendant]="componentId + '-selectedId-' + itemIndex"
+           tabindex="0"
            [attr.autocomplete]="autocomplete ? 'null' : 'off'"
            placeholder="{{placeholder}}"
            (focus)="showDropdownList($event)"
@@ -23,7 +29,9 @@ import {NguiAutoComplete} from "./auto-complete";
            [(ngModel)]="keyword" />
 
     <!-- dropdown that user can select -->
-    <ul *ngIf="dropdownVisible" [class.empty]="emptyList">
+    <ul *ngIf="dropdownVisible" [class.empty]="emptyList"
+            role="listbox"
+            [attr.aria-label]="placeholder">
       <li *ngIf="isLoading && loadingTemplate" class="loading" [innerHTML]="loadingTemplate"></li>
       <li *ngIf="isLoading && !loadingTemplate" class="loading">{{loadingText}}</li>
       <li *ngIf="minCharsEntered && !isLoading && !filteredList.length"
@@ -33,8 +41,12 @@ import {NguiAutoComplete} from "./auto-complete";
           (mousedown)="selectOne('')"
           class="blank-item">{{blankOptionText}}</li>
       <li class="item"
+          role="option"
+          tabindex="-1"
           *ngFor="let item of filteredList; let i=index"
           (mousedown)="selectOne(item)"
+          [id]="componentId + '-selectedId-' + i"
+          [attr.aria-selected]="i === itemIndex"
           [ngClass]="{selected: i === itemIndex}"
           [innerHtml]="autoComplete.getFormattedListItem(item)">
       </li>
@@ -119,10 +131,12 @@ export class NguiAutoCompleteComponent implements OnInit {
   @Input("match-formatted") matchFormatted: boolean = false;
   @Input("auto-select-first-item") autoSelectFirstItem: boolean = false;
   @Input("select-on-blur") selectOnBlur: boolean = false;
+  @Input("component-id") componentId: string = "autocompleter";
 
   @Output() valueSelected = new EventEmitter();
   @Output() customSelected = new EventEmitter();
   @Output() textEntered = new EventEmitter();
+  @Output() currentItemIndex = new EventEmitter<number>();
   @ViewChild('autoCompleteInput') autoCompleteInput: ElementRef;
   @ViewChild('autoCompleteContainer') autoCompleteContainer: ElementRef;
 
@@ -281,6 +295,7 @@ export class NguiAutoCompleteComponent implements OnInit {
         }
         this.itemIndex = (totalNumItem + this.itemIndex - 1) % totalNumItem;
         this.scrollToView(this.itemIndex);
+        this.currentItemIndex.emit(this.itemIndex);
         break;
 
       case 40: // DOWN, select the next li el or the first one
@@ -292,6 +307,7 @@ export class NguiAutoCompleteComponent implements OnInit {
         sum = (this.itemIndex === null) ? 0 : sum + 1;
         this.itemIndex = (totalNumItem + sum) % totalNumItem;
         this.scrollToView(this.itemIndex);
+        this.currentItemIndex.emit(this.itemIndex);
         break;
 
       case 13: // ENTER, choose it!!

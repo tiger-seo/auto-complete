@@ -45,6 +45,7 @@ export class NguiAutoCompleteDirective implements OnInit, OnChanges {
   @Input("auto-select-first-item") autoSelectFirstItem: boolean = false;
   @Input("open-on-focus") openOnFocus: boolean = true;
   @Input("re-focus-after-select") reFocusAfterSelect: boolean = true;
+  @Input("component-id") componentId: string = "autocompleter";
 
   @Input() ngModel: String;
   @Input('formControlName') formControlName: string;
@@ -75,6 +76,13 @@ export class NguiAutoCompleteDirective implements OnInit, OnChanges {
               public  viewContainerRef: ViewContainerRef,
               @Optional() @Host() @SkipSelf() private parentForm: ControlContainer) {
     this.el = this.viewContainerRef.element.nativeElement;
+    NguiAutoCompleteDirective.setAdditionalAttributes(this.el);
+  }
+
+  private static setAdditionalAttributes(el: HTMLElement) {
+    el.setAttribute("role", "combobox");
+    el.setAttribute("aria-autocomplete", "list");
+    el.setAttribute("aria-haspopup", "true");
   }
 
   ngOnInit(): void {
@@ -189,10 +197,12 @@ export class NguiAutoCompleteDirective implements OnInit, OnChanges {
     component.selectOnBlur = this.selectOnBlur;
     component.matchFormatted = this.matchFormatted;
     component.autoSelectFirstItem = this.autoSelectFirstItem;
+    component.componentId = this.componentId;
 
     component.valueSelected.subscribe(this.selectNewValue);
     component.textEntered.subscribe(this.enterNewText);
     component.customSelected.subscribe(this.selectCustomValue);
+    component.currentItemIndex.subscribe(this.setCurrentItemIndex);
 
     this.acDropdownEl = this.componentRef.location.nativeElement;
     this.acDropdownEl.style.display = "none";
@@ -340,6 +350,10 @@ export class NguiAutoCompleteDirective implements OnInit, OnChanges {
     this.ngModelChange.emit(value);
     this.valueChanged.emit(value);
     this.hideAutoCompleteDropdown();
+  };
+
+  setCurrentItemIndex = (itemIndex: number) => {
+    this.el.setAttribute("aria-activedescendant", this.componentId + '-selectedId-' + itemIndex);
   };
 
   private keydownEventHandler = (evt: any) => {

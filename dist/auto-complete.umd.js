@@ -7,7 +7,7 @@
 		exports["auto-complete"] = factory(require("@angular/core"), require("@angular/forms"), require("@angular/http"), require("rxjs/add/operator/map"), require("@angular/common"));
 	else
 		root["auto-complete"] = factory(root["@angular/core"], root["@angular/forms"], root["@angular/http"], root["rxjs/add/operator/map"], root["@angular/common"]);
-})(this, function(__WEBPACK_EXTERNAL_MODULE_0__, __WEBPACK_EXTERNAL_MODULE_3__, __WEBPACK_EXTERNAL_MODULE_6__, __WEBPACK_EXTERNAL_MODULE_7__, __WEBPACK_EXTERNAL_MODULE_9__) {
+})(typeof self !== 'undefined' ? self : this, function(__WEBPACK_EXTERNAL_MODULE_0__, __WEBPACK_EXTERNAL_MODULE_3__, __WEBPACK_EXTERNAL_MODULE_6__, __WEBPACK_EXTERNAL_MODULE_7__, __WEBPACK_EXTERNAL_MODULE_9__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -208,6 +208,10 @@ var NguiAutoCompleteComponent = (function () {
     function NguiAutoCompleteComponent(elementRef, autoComplete) {
         var _this = this;
         this.autoComplete = autoComplete;
+        /**
+         * public input properties
+         */
+        this.autocomplete = false;
         this.minChars = 0;
         this.acceptUserInput = true;
         this.loadingText = "Loading";
@@ -218,9 +222,11 @@ var NguiAutoCompleteComponent = (function () {
         this.matchFormatted = false;
         this.autoSelectFirstItem = false;
         this.selectOnBlur = false;
+        this.componentId = "autocompleter";
         this.valueSelected = new core_1.EventEmitter();
         this.customSelected = new core_1.EventEmitter();
         this.textEntered = new core_1.EventEmitter();
+        this.currentItemIndex = new core_1.EventEmitter();
         this.dropdownVisible = false;
         this.isLoading = false;
         this.filteredList = [];
@@ -234,22 +240,28 @@ var NguiAutoCompleteComponent = (function () {
         };
         this.inputElKeyHandler = function (evt) {
             var totalNumItem = _this.filteredList.length;
-            if (0 === totalNumItem) {
-                return;
-            }
             switch (evt.keyCode) {
                 case 27:// ESC, hide auto complete
+                    _this.selectOne(undefined);
                     break;
                 case 38:// UP, select the previous li el
+                    if (0 === totalNumItem) {
+                        return;
+                    }
                     _this.itemIndex = (totalNumItem + _this.itemIndex - 1) % totalNumItem;
                     _this.scrollToView(_this.itemIndex);
+                    _this.currentItemIndex.emit(_this.itemIndex);
                     break;
                 case 40:// DOWN, select the next li el or the first one
+                    if (0 === totalNumItem) {
+                        return;
+                    }
                     _this.dropdownVisible = true;
                     var sum = _this.itemIndex;
                     sum = (_this.itemIndex === null) ? 0 : sum + 1;
                     _this.itemIndex = (totalNumItem + sum) % totalNumItem;
                     _this.scrollToView(_this.itemIndex);
+                    _this.currentItemIndex.emit(_this.itemIndex);
                     break;
                 case 13:// ENTER, choose it!!
                     _this.selectOne(_this.filteredList[_this.itemIndex]);
@@ -392,6 +404,10 @@ var NguiAutoCompleteComponent = (function () {
         configurable: true
     });
     __decorate([
+        core_1.Input("autocomplete"),
+        __metadata("design:type", Object)
+    ], NguiAutoCompleteComponent.prototype, "autocomplete", void 0);
+    __decorate([
         core_1.Input("list-formatter"),
         __metadata("design:type", Function)
     ], NguiAutoCompleteComponent.prototype, "listFormatter", void 0);
@@ -460,6 +476,10 @@ var NguiAutoCompleteComponent = (function () {
         __metadata("design:type", Boolean)
     ], NguiAutoCompleteComponent.prototype, "selectOnBlur", void 0);
     __decorate([
+        core_1.Input("component-id"),
+        __metadata("design:type", String)
+    ], NguiAutoCompleteComponent.prototype, "componentId", void 0);
+    __decorate([
         core_1.Output(),
         __metadata("design:type", Object)
     ], NguiAutoCompleteComponent.prototype, "valueSelected", void 0);
@@ -472,6 +492,10 @@ var NguiAutoCompleteComponent = (function () {
         __metadata("design:type", Object)
     ], NguiAutoCompleteComponent.prototype, "textEntered", void 0);
     __decorate([
+        core_1.Output(),
+        __metadata("design:type", Object)
+    ], NguiAutoCompleteComponent.prototype, "currentItemIndex", void 0);
+    __decorate([
         core_1.ViewChild('autoCompleteInput'),
         __metadata("design:type", core_1.ElementRef)
     ], NguiAutoCompleteComponent.prototype, "autoCompleteInput", void 0);
@@ -482,7 +506,7 @@ var NguiAutoCompleteComponent = (function () {
     NguiAutoCompleteComponent = __decorate([
         core_1.Component({
             selector: "ngui-auto-complete",
-            template: "\n  <div #autoCompleteContainer class=\"ngui-auto-complete\">\n    <!-- keyword input -->\n    <input *ngIf=\"showInputTag\"\n           #autoCompleteInput class=\"keyword\"\n           placeholder=\"{{placeholder}}\"\n           (focus)=\"showDropdownList($event)\"\n           (blur)=\"blurHandler($event)\"\n           (keydown)=\"inputElKeyHandler($event)\"\n           (input)=\"reloadListInDelay($event)\"\n           [(ngModel)]=\"keyword\" />\n\n    <!-- dropdown that user can select -->\n    <ul *ngIf=\"dropdownVisible\" [class.empty]=\"emptyList\">\n      <li *ngIf=\"isLoading && loadingTemplate\" class=\"loading\" [innerHTML]=\"loadingTemplate\"></li>\n      <li *ngIf=\"isLoading && !loadingTemplate\" class=\"loading\">{{loadingText}}</li>\n      <li *ngIf=\"minCharsEntered && !isLoading && !filteredList.length\"\n           (mousedown)=\"selectOne('')\"\n           class=\"no-match-found\">{{noMatchFoundText || 'No Result Found'}}</li>\n      <li *ngIf=\"blankOptionText && filteredList.length\"\n          (mousedown)=\"selectOne('')\"\n          class=\"blank-item\">{{blankOptionText}}</li>\n      <li class=\"item\"\n          *ngFor=\"let item of filteredList; let i=index\"\n          (mousedown)=\"selectOne(item)\"\n          [ngClass]=\"{selected: i === itemIndex}\"\n          [innerHtml]=\"autoComplete.getFormattedListItem(item)\">\n      </li>\n    </ul>\n\n  </div>",
+            template: "\n  <div #autoCompleteContainer class=\"ngui-auto-complete\">\n    <!-- keyword input -->\n    <input *ngIf=\"showInputTag\"\n           #autoCompleteInput\n           class=\"keyword\"\n           role=\"combobox\"\n           aria-autocomplete=\"list\"\n           aria-haspopup=\"true\"\n           [attr.aria-expanded]=\"filteredList.length > 0\"\n           [attr.aria-activedescendant]=\"componentId + '-selectedId-' + itemIndex\"\n           tabindex=\"0\"\n           [attr.autocomplete]=\"autocomplete ? 'null' : 'off'\"\n           [placeholder]=\"placeholder\"\n           (focus)=\"showDropdownList($event)\"\n           (blur)=\"blurHandler($event)\"\n           (keydown)=\"inputElKeyHandler($event)\"\n           (input)=\"reloadListInDelay($event)\"\n           [(ngModel)]=\"keyword\" />\n\n    <!-- dropdown that user can select -->\n    <ul *ngIf=\"dropdownVisible\"\n            role=\"listbox\"\n            [class.empty]=\"emptyList\"\n            [attr.aria-label]=\"placeholder\">\n      <li *ngIf=\"isLoading && loadingTemplate\" class=\"loading\" [innerHTML]=\"loadingTemplate\"></li>\n      <li *ngIf=\"isLoading && !loadingTemplate\" class=\"loading\">{{loadingText}}</li>\n      <li *ngIf=\"minCharsEntered && !isLoading && !filteredList.length\"\n           (mousedown)=\"selectOne('')\"\n           class=\"no-match-found\">{{noMatchFoundText || 'No Result Found'}}</li>\n      <li *ngIf=\"blankOptionText && filteredList.length\"\n          (mousedown)=\"selectOne('')\"\n          class=\"blank-item\">{{blankOptionText}}</li>\n      <li class=\"item\"\n          role=\"option\"\n          tabindex=\"-1\"\n          *ngFor=\"let item of filteredList; let i=index\"\n          (mousedown)=\"selectOne(item)\"\n          [id]=\"componentId + '-selectedId-' + i\"\n          [attr.aria-selected]=\"i === itemIndex\"\n          [ngClass]=\"{selected: i === itemIndex}\"\n          [innerHtml]=\"autoComplete.getFormattedListItem(item)\">\n      </li>\n    </ul>\n\n  </div>",
             providers: [auto_complete_1.NguiAutoComplete],
             styles: ["\n  @keyframes slideDown {\n    0% {\n      transform:  translateY(-10px);\n    }\n    100% {\n      transform: translateY(0px);\n    }\n  }\n  .ngui-auto-complete {\n    background-color: transparent;\n  }\n  .ngui-auto-complete > input {\n    outline: none;\n    border: 0;\n    padding: 2px; \n    box-sizing: border-box;\n    background-clip: content-box;\n  }\n\n  .ngui-auto-complete > ul {\n    background-color: #fff;\n    margin: 0;\n    width : 100%;\n    overflow-y: auto;\n    list-style-type: none;\n    padding: 0;\n    border: 1px solid #ccc;\n    box-sizing: border-box;\n    animation: slideDown 0.1s;\n  }\n  .ngui-auto-complete > ul.empty {\n    display: none;\n  }\n\n  .ngui-auto-complete > ul li {\n    padding: 2px 5px;\n    border-bottom: 1px solid #eee;\n  }\n\n  .ngui-auto-complete > ul li.selected {\n    background-color: #ccc;\n  }\n\n  .ngui-auto-complete > ul li:last-child {\n    border-bottom: none;\n  }\n\n  .ngui-auto-complete > ul li:hover {\n    background-color: #ccc;\n  }"
             ],
@@ -533,6 +557,7 @@ var NguiAutoCompleteDirective = (function () {
         this.resolver = resolver;
         this.viewContainerRef = viewContainerRef;
         this.parentForm = parentForm;
+        this.autocomplete = false;
         this.acceptUserInput = true;
         this.loadingTemplate = null;
         this.loadingText = "Loading";
@@ -542,6 +567,7 @@ var NguiAutoCompleteDirective = (function () {
         this.autoSelectFirstItem = false;
         this.openOnFocus = true;
         this.reFocusAfterSelect = true;
+        this.componentId = "autocompleter";
         this.zIndex = "1";
         this.isRtl = false;
         this.ngModelChange = new core_1.EventEmitter();
@@ -574,9 +600,11 @@ var NguiAutoCompleteDirective = (function () {
             component.selectOnBlur = _this.selectOnBlur;
             component.matchFormatted = _this.matchFormatted;
             component.autoSelectFirstItem = _this.autoSelectFirstItem;
+            component.componentId = _this.componentId;
             component.valueSelected.subscribe(_this.selectNewValue);
             component.textEntered.subscribe(_this.enterNewText);
             component.customSelected.subscribe(_this.selectCustomValue);
+            component.currentItemIndex.subscribe(_this.setCurrentItemIndex);
             _this.acDropdownEl = _this.componentRef.location.nativeElement;
             _this.acDropdownEl.style.display = "none";
             // if this element is not an input tag, move dropdown after input tag
@@ -673,6 +701,9 @@ var NguiAutoCompleteDirective = (function () {
             _this.valueChanged.emit(value);
             _this.hideAutoCompleteDropdown();
         };
+        this.setCurrentItemIndex = function (itemIndex) {
+            _this.el.setAttribute("aria-activedescendant", _this.componentId + '-selectedId-' + itemIndex);
+        };
         this.keydownEventHandler = function (evt) {
             if (_this.componentRef) {
                 var component = _this.componentRef.instance;
@@ -691,7 +722,14 @@ var NguiAutoCompleteDirective = (function () {
             }
         };
         this.el = this.viewContainerRef.element.nativeElement;
+        NguiAutoCompleteDirective_1.setAdditionalAttributes(this.el);
     }
+    NguiAutoCompleteDirective_1 = NguiAutoCompleteDirective;
+    NguiAutoCompleteDirective.setAdditionalAttributes = function (el) {
+        el.setAttribute("role", "combobox");
+        el.setAttribute("aria-autocomplete", "list");
+        el.setAttribute("aria-haspopup", "true");
+    };
     NguiAutoCompleteDirective.prototype.ngOnInit = function () {
         var _this = this;
         // Blur event is handled only after a click event. This is to prevent handling of blur events resulting from interacting with a scrollbar
@@ -739,6 +777,9 @@ var NguiAutoCompleteDirective = (function () {
             this.el : this.el.querySelector("input");
         if (this.openOnFocus) {
             this.inputEl.addEventListener('focus', function (e) { return _this.showAutoCompleteDropdown(e); });
+        }
+        if (!this.autocomplete) {
+            this.inputEl.setAttribute('autocomplete', 'off');
         }
         this.inputEl.addEventListener('blur', function (e) {
             _this.scheduledBlurHandler = function () {
@@ -804,6 +845,10 @@ var NguiAutoCompleteDirective = (function () {
     NguiAutoCompleteDirective.prototype.renderValue = function (item) {
         this.inputEl && (this.inputEl.value = '' + item);
     };
+    __decorate([
+        core_1.Input("autocomplete"),
+        __metadata("design:type", Object)
+    ], NguiAutoCompleteDirective.prototype, "autocomplete", void 0);
     __decorate([
         core_1.Input("auto-complete-placeholder"),
         __metadata("design:type", String)
@@ -885,6 +930,10 @@ var NguiAutoCompleteDirective = (function () {
         __metadata("design:type", Boolean)
     ], NguiAutoCompleteDirective.prototype, "reFocusAfterSelect", void 0);
     __decorate([
+        core_1.Input("component-id"),
+        __metadata("design:type", String)
+    ], NguiAutoCompleteDirective.prototype, "componentId", void 0);
+    __decorate([
         core_1.Input(),
         __metadata("design:type", String)
     ], NguiAutoCompleteDirective.prototype, "ngModel", void 0);
@@ -916,7 +965,7 @@ var NguiAutoCompleteDirective = (function () {
         core_1.Output(),
         __metadata("design:type", Object)
     ], NguiAutoCompleteDirective.prototype, "customSelected", void 0);
-    NguiAutoCompleteDirective = __decorate([
+    NguiAutoCompleteDirective = NguiAutoCompleteDirective_1 = __decorate([
         core_1.Directive({
             selector: "[auto-complete], [ngui-auto-complete]"
         }),
@@ -926,6 +975,7 @@ var NguiAutoCompleteDirective = (function () {
             forms_1.ControlContainer])
     ], NguiAutoCompleteDirective);
     return NguiAutoCompleteDirective;
+    var NguiAutoCompleteDirective_1;
 }());
 exports.NguiAutoCompleteDirective = NguiAutoCompleteDirective;
 

@@ -12,6 +12,7 @@ var NguiAutoCompleteDirective = (function () {
         this.resolver = resolver;
         this.viewContainerRef = viewContainerRef;
         this.parentForm = parentForm;
+        this.autocomplete = false;
         this.acceptUserInput = true;
         this.loadingTemplate = null;
         this.loadingText = "Loading";
@@ -21,6 +22,7 @@ var NguiAutoCompleteDirective = (function () {
         this.autoSelectFirstItem = false;
         this.openOnFocus = true;
         this.reFocusAfterSelect = true;
+        this.componentId = "autocompleter";
         this.zIndex = "1";
         this.isRtl = false;
         this.ngModelChange = new core_1.EventEmitter();
@@ -53,9 +55,11 @@ var NguiAutoCompleteDirective = (function () {
             component.selectOnBlur = _this.selectOnBlur;
             component.matchFormatted = _this.matchFormatted;
             component.autoSelectFirstItem = _this.autoSelectFirstItem;
+            component.componentId = _this.componentId;
             component.valueSelected.subscribe(_this.selectNewValue);
             component.textEntered.subscribe(_this.enterNewText);
             component.customSelected.subscribe(_this.selectCustomValue);
+            component.currentItemIndex.subscribe(_this.setCurrentItemIndex);
             _this.acDropdownEl = _this.componentRef.location.nativeElement;
             _this.acDropdownEl.style.display = "none";
             // if this element is not an input tag, move dropdown after input tag
@@ -152,6 +156,9 @@ var NguiAutoCompleteDirective = (function () {
             _this.valueChanged.emit(value);
             _this.hideAutoCompleteDropdown();
         };
+        this.setCurrentItemIndex = function (itemIndex) {
+            _this.el.setAttribute("aria-activedescendant", _this.componentId + '-selectedId-' + itemIndex);
+        };
         this.keydownEventHandler = function (evt) {
             if (_this.componentRef) {
                 var component = _this.componentRef.instance;
@@ -170,7 +177,13 @@ var NguiAutoCompleteDirective = (function () {
             }
         };
         this.el = this.viewContainerRef.element.nativeElement;
+        NguiAutoCompleteDirective.setAdditionalAttributes(this.el);
     }
+    NguiAutoCompleteDirective.setAdditionalAttributes = function (el) {
+        el.setAttribute("role", "combobox");
+        el.setAttribute("aria-autocomplete", "list");
+        el.setAttribute("aria-haspopup", "true");
+    };
     NguiAutoCompleteDirective.prototype.ngOnInit = function () {
         var _this = this;
         // Blur event is handled only after a click event. This is to prevent handling of blur events resulting from interacting with a scrollbar
@@ -218,6 +231,9 @@ var NguiAutoCompleteDirective = (function () {
             this.el : this.el.querySelector("input");
         if (this.openOnFocus) {
             this.inputEl.addEventListener('focus', function (e) { return _this.showAutoCompleteDropdown(e); });
+        }
+        if (!this.autocomplete) {
+            this.inputEl.setAttribute('autocomplete', 'off');
         }
         this.inputEl.addEventListener('blur', function (e) {
             _this.scheduledBlurHandler = function () {
@@ -295,6 +311,7 @@ var NguiAutoCompleteDirective = (function () {
         { type: forms_1.ControlContainer, decorators: [{ type: core_1.Optional }, { type: core_1.Host }, { type: core_1.SkipSelf },] },
     ]; };
     NguiAutoCompleteDirective.propDecorators = {
+        'autocomplete': [{ type: core_1.Input, args: ["autocomplete",] },],
         'autoCompletePlaceholder': [{ type: core_1.Input, args: ["auto-complete-placeholder",] },],
         'source': [{ type: core_1.Input, args: ["source",] },],
         'pathToData': [{ type: core_1.Input, args: ["path-to-data",] },],
@@ -315,6 +332,7 @@ var NguiAutoCompleteDirective = (function () {
         'autoSelectFirstItem': [{ type: core_1.Input, args: ["auto-select-first-item",] },],
         'openOnFocus': [{ type: core_1.Input, args: ["open-on-focus",] },],
         'reFocusAfterSelect': [{ type: core_1.Input, args: ["re-focus-after-select",] },],
+        'componentId': [{ type: core_1.Input, args: ["component-id",] },],
         'ngModel': [{ type: core_1.Input },],
         'formControlName': [{ type: core_1.Input, args: ['formControlName',] },],
         'extFormControl': [{ type: core_1.Input, args: ['formControl',] },],
