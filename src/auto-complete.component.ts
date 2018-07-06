@@ -23,6 +23,12 @@ import { NguiAutoComplete } from './auto-complete';
             <!-- keyword input -->
             <input *ngIf="showInputTag"
                    #autoCompleteInput class="keyword"
+                   role="combobox"
+                   aria-autocomplete="list"
+                   aria-haspopup="true"
+                   [attr.aria-expanded]="filteredList.length > 0"
+                   [attr.aria-activedescendant]="componentId + '-selectedId-' + itemIndex"
+                   tabindex="0"
                    [attr.autocomplete]="autocomplete ? 'null' : 'off'"
                    placeholder="{{placeholder}}"
                    (focus)="showDropdownList($event)"
@@ -32,9 +38,10 @@ import { NguiAutoComplete } from './auto-complete';
                    [(ngModel)]="keyword"/>
 
             <!-- dropdown that user can select -->
-            <ul *ngIf="dropdownVisible" [class.empty]="emptyList">
-                <li *ngIf="isLoading && loadingTemplate" class="loading"
-                    [innerHTML]="loadingTemplate"></li>
+            <ul *ngIf="dropdownVisible" [class.empty]="emptyList"
+                role="listbox"
+                [attr.aria-label]="placeholder">
+                <li *ngIf="isLoading && loadingTemplate" class="loading" [innerHTML]="loadingTemplate"></li>
                 <li *ngIf="isLoading && !loadingTemplate" class="loading">{{loadingText}}</li>
                 <li *ngIf="minCharsEntered && !isLoading && !filteredList.length"
                     (mousedown)="selectOne('')"
@@ -47,8 +54,12 @@ import { NguiAutoComplete } from './auto-complete';
                     class="blank-item">{{blankOptionText}}
                 </li>
                 <li class="item"
+                    role="option"
+                    tabindex="-1"
                     *ngFor="let item of filteredList; let i=index; trackBy: trackByIndex"
                     (mousedown)="selectOne(item)"
+                    [id]="componentId + '-selectedId-' + i"
+                    [attr.aria-selected]="i === itemIndex"
                     [ngClass]="{selected: i === itemIndex}"
                     [innerHtml]="autoComplete.getFormattedListItem(item)">
                 </li>
@@ -136,6 +147,7 @@ export class NguiAutoCompleteComponent implements OnInit {
     @Input('match-formatted') public matchFormatted: boolean = false;
     @Input('auto-select-first-item') public autoSelectFirstItem: boolean = false;
     @Input('select-on-blur') public selectOnBlur: boolean = false;
+    @Input('component-id') componentId: string = 'autocompleter';
     @Input('re-focus-after-select') public reFocusAfterSelect: boolean = true;
     @Input('header-item-template') public headerItemTemplate = null;
     @Input('ignore-accents') public ignoreAccents: boolean = true;
@@ -143,6 +155,7 @@ export class NguiAutoCompleteComponent implements OnInit {
     @Output() public valueSelected = new EventEmitter();
     @Output() public customSelected = new EventEmitter();
     @Output() public textEntered = new EventEmitter();
+    @Output() currentItemIndex = new EventEmitter<number>();
 
     @ViewChild('autoCompleteInput') public autoCompleteInput: ElementRef;
     @ViewChild('autoCompleteContainer') public autoCompleteContainer: ElementRef;
@@ -311,6 +324,7 @@ export class NguiAutoCompleteComponent implements OnInit {
                 this.selectOnEnter = true;
                 this.itemIndex = (totalNumItem + this.itemIndex - 1) % totalNumItem;
                 this.scrollToView(this.itemIndex);
+                this.currentItemIndex.emit(this.itemIndex);
                 break;
 
             case 40: // DOWN, select the next li el or the first one
@@ -323,6 +337,7 @@ export class NguiAutoCompleteComponent implements OnInit {
                 sum = (this.itemIndex === null) ? 0 : sum + 1;
                 this.itemIndex = (totalNumItem + sum) % totalNumItem;
                 this.scrollToView(this.itemIndex);
+                this.currentItemIndex.emit(this.itemIndex);
                 break;
 
             case 13: // ENTER, choose it!!

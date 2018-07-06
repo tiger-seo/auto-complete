@@ -31,6 +31,12 @@ import {
 })
 export class NguiAutoCompleteDirective implements OnInit, OnChanges, AfterViewInit, OnDestroy {
 
+    private static setAdditionalAttributes(el: HTMLElement) {
+        el.setAttribute('role', 'combobox');
+        el.setAttribute('aria-autocomplete', 'list');
+        el.setAttribute('aria-haspopup', 'true');
+    }
+
     @Input('autocomplete') public autocomplete = false;
     @Input('auto-complete-placeholder') public autoCompletePlaceholder: string;
     @Input('source') public source: any;
@@ -55,6 +61,7 @@ export class NguiAutoCompleteDirective implements OnInit, OnChanges, AfterViewIn
     @Input('re-focus-after-select') public reFocusAfterSelect: boolean = true;
     @Input('header-item-template') public headerItemTemplate = null;
     @Input('ignore-accents') public ignoreAccents: boolean = true;
+    @Input('component-id') componentId: string = 'autocompleter';
 
     @Input() public ngModel: string;
     @Input('formControlName') public formControlName: string;
@@ -83,6 +90,7 @@ export class NguiAutoCompleteDirective implements OnInit, OnChanges, AfterViewIn
                 public  viewContainerRef: ViewContainerRef,
                 @Optional() @Host() @SkipSelf() private parentForm: ControlContainer) {
         this.el = this.viewContainerRef.element.nativeElement;
+        NguiAutoCompleteDirective.setAdditionalAttributes(this.el);
     }
 
     ngOnInit(): void {
@@ -201,10 +209,12 @@ export class NguiAutoCompleteDirective implements OnInit, OnChanges, AfterViewIn
         component.autoSelectFirstItem = this.autoSelectFirstItem;
         component.headerItemTemplate = this.headerItemTemplate;
         component.ignoreAccents = this.ignoreAccents;
+        component.componentId = this.componentId;
 
         component.valueSelected.subscribe(this.selectNewValue);
         component.textEntered.subscribe(this.enterNewText);
         component.customSelected.subscribe(this.selectCustomValue);
+        component.currentItemIndex.subscribe(this.setCurrentItemIndex);
 
         this.acDropdownEl = this.componentRef.location.nativeElement;
         this.acDropdownEl.style.display = 'none';
@@ -357,6 +367,10 @@ export class NguiAutoCompleteDirective implements OnInit, OnChanges, AfterViewIn
         this.ngModelChange.emit(value);
         this.valueChanged.emit(value);
         this.hideAutoCompleteDropdown();
+    }
+
+    setCurrentItemIndex = (itemIndex: number) => {
+        this.el.setAttribute('aria-activedescendant', this.componentId + '-selectedId-' + itemIndex);
     }
 
     private keydownEventHandler = (evt: any) => {
